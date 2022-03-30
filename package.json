@@ -15,5 +15,8 @@
   "bugs": {
     "url": "https://github.com/MikulasMascautanu/vinylbazar/issues"
   },
-  "homepage": "https://github.com/MikulasMascautanu/vinylbazar#readme"
+  "homepage": "https://github.com/MikulasMascautanu/vinylbazar#readme",
+  "dependencies": {
+    "axios": "^0.26.1"
+  }
 }
