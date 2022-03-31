@@ -1,23 +1,47 @@
 import axios from "axios";
 import { parse } from "node-html-parser";
-const BASE_URL = "https://www.vinylbazar.net/";
+const BASE_URL = "https://www.vinylbazar.net";
 
 const callBish = async () => {
-  const response = await axios.get(BASE_URL + "pop-rock-cz-sk");
+  // Get paths
+  const response = await axios.get(BASE_URL);
 
   if (!response || !response.data) {
     return;
   }
-  const root = parse(response.data);
 
-  const els = root.querySelectorAll(".productBody");
-  els.forEach((element) => {
-    console.log(element.querySelector(".productTitleContent a").text);
-    console.log(
-      element.querySelector(".productTitleContent a").rawAttributes.href
-    );
-    console.log(element.querySelector(".product_price_text").text);
+  const root = parse(response.data);
+  const menuItem = ".root-eshop-menu > .leftmenuDef a";
+  const paths = root
+    .querySelectorAll(menuItem)
+    .map((item) => item.rawAttributes.href);
+
+  paths.forEach((element) => {
+    console.log(element);
   });
+
+  // Get products
+  const products = [];
+  for (const path of paths) {
+    response = await axios.get(BASE_URL + path);
+
+    if (!response || !response.data) {
+      console.log("Invalid path: ", path);
+      continue;
+    }
+    root = parse(response.data);
+    products.push(productRoot.querySelectorAll(".productBody"));
+  }
+
+  // Get product info
+  const title = ".productTitleContent a";
+  const price = ".product_price_text";
+
+  // products.forEach((p) => {
+  //   console.log(p.querySelector(title).textContent);
+  //   console.log(p.querySelector(title).rawAttributes.href);
+  //   console.log(p.querySelector(price).textContent);
+  // });
 };
 
 callBish();
