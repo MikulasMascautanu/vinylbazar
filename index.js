@@ -35,6 +35,19 @@ const callBish = async () => {
     })
     console.log(rows)
 
+    // Update Sheet
+    response = await sheets.spreadsheets.values.update({
+      spreadsheetId: process.env.SHEET_ID,
+      includeValuesInResponse: true,
+      valueInputOption: 'RAW',
+      range: 'Sheet1!R4C1:R5C3',
+      requestBody: { values: [[1, 2, 3],[4, 5, 7]] },
+    })
+
+    // Updated values
+    const newRows = response.data.updatedData.values
+    console.log(newRows)
+
     return
   }
 
