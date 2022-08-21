@@ -91,11 +91,13 @@ const callBish = async () => {
   const title = '.productTitleContent a'
   const price = '.product_price_text'
 
-  // products.forEach((p) => {
-  //   console.log(p.querySelector(title).textContent);
-  //   console.log(p.querySelector(title).rawAttributes.href);
-  //   console.log(p.querySelector(price).textContent);
-  // });
+  for (const section of products) {
+    for (const record of section.data) {
+      console.log(record.querySelector(title).textContent)
+      console.log(record.querySelector(title).rawAttributes.href)
+      console.log(record.querySelector(price).textContent)
+    }
+  }
 }
 
 callBish()
