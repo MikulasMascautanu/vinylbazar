@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import axios from 'axios'
 import { parse } from 'node-html-parser'
 import { google } from 'googleapis'
@@ -10,8 +11,33 @@ const authAndGetSheets = async () => {
 
   return google.sheets({ version: 'v4', auth })
 }
+
 const callBish = async () => {
   // Get paths
+  const paths = []
+
+  // TODO: Testing Sheets API
+  if (!paths.length) {
+    const sheets = await authAndGetSheets()
+
+    // Sheet range
+    const range = `Sheet1!R1C1:R2C3`
+
+    // Get data from Sheet
+    let response = await sheets.spreadsheets.values.get({
+      spreadsheetId: process.env.SHEET_ID,
+      range,
+    })
+
+    // Prettify returned data, for testing
+    const rows = response.data.values.map((x) => {
+      return { title: x[0], price: x[1], link: x[2] }
+    })
+    console.log(rows)
+
+    return
+  }
+
   let response = await axios.get(BASE_URL)
 
   if (!response?.data) {
