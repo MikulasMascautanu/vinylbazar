@@ -1,7 +1,15 @@
 import axios from 'axios'
 import { parse } from 'node-html-parser'
+import { google } from 'googleapis'
 const BASE_URL = 'https://www.vinylbazar.net'
 
+const authAndGetSheets = async () => {
+  const auth = await google.auth.getClient({
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  })
+
+  return google.sheets({ version: 'v4', auth })
+}
 const callBish = async () => {
   // Get paths
   let response = await axios.get(BASE_URL)
