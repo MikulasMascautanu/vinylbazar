@@ -14,16 +14,19 @@ const callBish = async () => {
   // Get paths
   let response = await axios.get(BASE_URL)
 
-  if (response?.data) {
+  if (!response?.data) {
     throw new Error('No data received.')
   }
 
   const root = parse(response.data)
   const menuItem = '.root-eshop-menu > .leftmenuDef a'
-  const paths = root
-    .querySelectorAll(menuItem)
-    .map((item) => item.rawAttributes.href)
+  for (let item of root.querySelectorAll(menuItem)) {
+    if (item.rawAttributes?.href) {
+      paths.push(item.rawAttributes.href)
+    }
+  }
 
+  // Log paths
   paths.forEach((element) => {
     console.log(element)
   })
@@ -37,8 +40,12 @@ const callBish = async () => {
       console.log('Invalid path: ', path)
       continue
     }
-    root = parse(response.data)
-    products.push(productRoot.querySelectorAll('.productBody'))
+
+    const productRoot = parse(response.data)
+    products.push({
+      path: path,
+      data: productRoot.querySelectorAll('.productBody'),
+    })
   }
 
   // Get product info
