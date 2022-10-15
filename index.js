@@ -1,7 +1,8 @@
 import 'dotenv/config'
 import axios from 'axios'
 import { parse } from 'node-html-parser'
-import { sheetsClient } from './sheetsClient'
+import { sheetsClient } from './sheetsClient.js'
+import { selectors, getRecordInfo } from './scrapeHelpers.js'
 const BASE_URL = 'https://www.vinylbazar.net'
 
 const getDataForPath = async (path, pageId, data) => {
@@ -14,10 +15,10 @@ const getDataForPath = async (path, pageId, data) => {
 
   const productRoot = parse(response.data)
 
-  data.push(...productRoot.querySelectorAll('.productBody'))
+  data.push(...productRoot.querySelectorAll(selectors.product))
 
   // Call getDataForPath recursively when there is another page for the path
-  if (productRoot.querySelector('[rel="next"]')) {
+  if (productRoot.querySelector(selectors.nextPage)) {
     await getDataForPath(path, pageId + 1, data)
   }
 
@@ -75,8 +76,7 @@ const callBish = async () => {
   }
 
   const root = parse(response.data)
-  const menuItem = '.root-eshop-menu > .leftmenuDef a'
-  for (let item of root.querySelectorAll(menuItem)) {
+  for (let item of root.querySelectorAll(selectors.menuItem)) {
     if (item.rawAttributes?.href) {
       paths.push(item.rawAttributes.href)
     }
@@ -89,20 +89,17 @@ const callBish = async () => {
 
   // Get products
   const products = []
-
   for (const path of paths) {
     products.push({ path, data: await getDataForPath(path, 0, []) })
   }
 
-  // Get product info
-  const title = '.productTitleContent a'
-  const price = '.product_price_text'
-
   for (const section of products) {
     for (const record of section.data) {
-      console.log(record.querySelector(title).textContent)
-      console.log(record.querySelector(title).rawAttributes.href)
-      console.log(record.querySelector(price).textContent)
+      const recordInfo = getRecordInfo(record)
+      console.log(recordInfo.title)
+      console.log(recordInfo.url)
+      console.log(recordInfo.price)
+      console.log(recordInfo.img)
     }
   }
 }
