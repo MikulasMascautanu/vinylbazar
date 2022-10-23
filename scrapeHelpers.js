@@ -12,6 +12,6 @@ export const getRecordInfo = (dom) => {
     title: dom.querySelector(selectors.title).textContent,
     url: dom.querySelector(selectors.title).rawAttributes.href,
     price: dom.querySelector(selectors.price).textContent,
-    img: dom.querySelector(selectors.img).src,
+    img: dom.querySelector(selectors.img).rawAttributes.src,
   }
 }
