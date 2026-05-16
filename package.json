@@ -1,0 +1,23 @@
+{
+	"name": "vinylbazar",
+	"version": "1.0.0",
+	"description": "Vinyl records scraper for vinylbazar.net",
+	"main": "src/index.js",
+	"type": "module",
+	"scripts": {
+		"scrape": "node src/index.js",
+		"test": "echo \"Error: no test specified\" && exit 1"
+	},
+	"keywords": [
+		"scraper",
+		"vinyl",
+		"music"
+	],
+	"author": "",
+	"license": "ISC",
+	"dependencies": {
+		"node-html-parser": "^6.1.13",
+		"puppeteer": "^23.11.1",
+		"sqlite3": "^5.1.7"
+	}
+}

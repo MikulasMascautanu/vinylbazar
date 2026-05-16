@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Database (exclude during development, will include in later phase)
+data/*.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo

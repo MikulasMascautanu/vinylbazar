@@ -9,17 +9,32 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
 **API Port:** 8080
 **Error Strategy:** Resilient (log errors, continue scraping)
 **Price Tracking:** Simple overwrite (no history)
+**Scraping Strategy:** Multi-category (extract all categories from menu, then scrape each)
 
 ---
 
 ## Phase 1: Project Setup & Basic Scraper
 
-**Goal:** Initialize Node.js project and implement single-page scraper with SQLite storage.
+**Goal:** Initialize Node.js project and implement category discovery + single-category scraper with SQLite storage.
 
 ### Context
 
 - **Target URL:** https://www.vinylbazar.net
-- **Expected Data:** title, artist, price, image_url, product_url
+- **Scraping Flow:**
+  1. Scrape homepage to extract all category URLs from menu
+  2. Scrape first category to test product extraction
+- **Provided Selectors:**
+  ```javascript
+  const selectors = {
+  	menuItem: ".root-eshop-menu > .leftmenuDef a", // Category links
+  	product: ".productBody", // Product container
+  	nextPage: '[rel="next"]', // Pagination link
+  	title: ".productTitleContent a", // Product title
+  	price: ".product_price_text", // Product price
+  	img: ".img_box a img:first-of-type", // Product image
+  };
+  ```
+- **Expected Data:** title, artist, price, image_url, product_url, category
 - **Database Schema:** (from [goal.md](goal.md))
   ```sql
   CREATE TABLE vinyls (
@@ -29,6 +44,7 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
     price REAL,
     image_url TEXT,
     product_url TEXT UNIQUE NOT NULL,
+    category TEXT,
     scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
   ```
@@ -38,18 +54,25 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
 - [ ] Initialize Node.js project (`package.json`)
 - [ ] Install dependencies: `node-html-parser`, `sqlite3`, `node-fetch`
 - [ ] Create `data/` directory for database
-- [ ] Create `src/db.js` - SQLite connection and schema initialization
+- [ ] Create `src/config.js` - Store selectors and constants
+- [ ] Create `src/db.js` - SQLite connection and schema initialization (with `category` field)
 - [ ] Create `src/scraper.js` - Main scraper logic
-  - Fetch HTML from target URL
-  - Parse product listings using node-html-parser
-  - Extract: title, artist, price, image_url, product_url from HTML structure
-  - Insert records into SQLite
+  - **Step 1:** Fetch homepage (https://www.vinylbazar.net)
+  - **Step 2:** Extract category URLs using selector `.root-eshop-menu > .leftmenuDef a`
+  - **Step 3:** For first category, scrape products:
+    - Use selector `.productBody` to find products
+    - Extract title: `.productTitleContent a` (text + href)
+    - Extract price: `.product_price_text` (parse number from text)
+    - Extract image: `.img_box a img:first-of-type` (src attribute)
+  - **Step 4:** Parse artist from title (if format is "Artist - Title" or similar)
+  - **Step 5:** Insert records into SQLite
 - [ ] Create `src/index.js` - Entry point to run scraper
 - [ ] Add `.gitignore` (node_modules, data/\*.db during development)
 
 ### Files to Create
 
 - `package.json`
+- `src/config.js`
 - `src/db.js`
 - `src/scraper.js`
 - `src/index.js`
@@ -58,34 +81,42 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
 ### Verification Steps
 
 - [ ] Run `node src/index.js` successfully
+- [ ] Check console output shows list of discovered categories (10+ categories expected)
 - [ ] Check `data/vinyls.db` exists
 - [ ] Query database: `SELECT COUNT(*) FROM vinyls` returns > 0
-- [ ] Verify at least 4 products scraped (from first page)
-- [ ] Check all fields populated correctly (title, price, product_url are NOT NULL)
+- [ ] Verify at least 4 products scraped (from first category, first page)
+- [ ] Check all fields populated: `SELECT * FROM vinyls LIMIT 5` shows title, price, product_url, category
+- [ ] Verify category field contains category name
 
 ---
 
-## Phase 2: Multi-Page Scraping
+## Phase 2: Multi-Page & Multi-Category Scraping
 
-**Goal:** Extend scraper to handle pagination and scrape all available pages.
+**Goal:** Extend scraper to handle pagination within each category and scrape all categories.
 
 ### Context
 
-- Website uses pagination (need to detect "next page" link or page numbers)
-- Estimated pages: 10-50 based on typical vinyl catalog sizes
-- Need progress logging to track scraping
+- Website uses pagination with `[rel="next"]` selector (from provided selectors)
+- Need to scrape ALL categories discovered in Phase 1
+- Estimated: 10-20 categories × 10-50 pages each = hundreds of pages total
+- Need progress logging to track scraping across categories and pages
 
 ### Tasks
 
 - [ ] Update `src/scraper.js`:
-  - Add pagination detection logic (find next page URL or page number pattern)
-  - Implement loop to scrape all pages
+  - Add pagination detection using `[rel="next"]` selector
+  - Implement loop to scrape all pages within a category
+  - Extend to scrape ALL categories (not just first one)
   - Add delay between requests (500ms-1s to be respectful)
-  - Add progress logging (console.log with page number and count)
+  - Add comprehensive progress logging:
+    - Current category (X/Y)
+    - Current page within category
+    - Products scraped per page
+    - Running total
 - [ ] Add error handling for network failures
-  - Log errors with page URL
-  - Continue to next page on failure
-  - Track failed pages for retry
+  - Log errors with category and page URL
+  - Continue to next page/category on failure
+  - Track failed URLs for reporting at end
 
 ### Files to Modify
 
@@ -93,11 +124,12 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
 
 ### Verification Steps
 
-- [ ] Run scraper and observe multi-page scraping in logs
-- [ ] Verify total record count > 100 (multiple pages worth)
-- [ ] Check console shows progress: "Page 1/X: 20 products scraped"
+- [ ] Run scraper and observe multi-category, multi-page scraping in logs
+- [ ] Verify console shows: "Category: Hip-Hop (3/16) | Page 2 | Products: 20 | Total: 580"
+- [ ] Verify total record count > 500 (multiple categories and pages)
+- [ ] Check database has products from multiple categories: `SELECT DISTINCT category FROM vinyls`
 - [ ] Confirm scraper completes without crashing
-- [ ] Test resilience: temporarily block one page URL, verify scraper continues
+- [ ] Test resilience: simulate network error, verify scraper continues to next page/category
 
 ---
 
@@ -185,11 +217,11 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
 
 ## Phase 5: GitHub Actions Automation
 
-**Goal:** Automate scraping every 6 hours and commit updated database.
+**Goal:** Automate scraping every 12 hours and commit updated database.
 
 ### Context
 
-- **Schedule:** `cron: '0 */6 * * *'` (every 6 hours) (from [goal.md](goal.md))
+- **Schedule:** `cron: '0 */12 * * *'` (every 12 hours)
 - **Actions:** Checkout → Scrape → Commit → Push
 - **Authentication:** GitHub Actions built-in GITHUB_TOKEN
 
@@ -220,9 +252,9 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
 
 - [ ] Push workflow to GitHub
 - [ ] Trigger manual workflow run (Actions tab → Run workflow)
-- [ ] Verify workflow completes successfully
+- [ ] Verify workflow completes successfully (may take 10-30 minutes for full scrape)
 - [ ] Check new commit created with updated `data/vinyls.db`
-- [ ] Wait 6 hours (or modify cron for testing) and verify automatic run
+- [ ] Wait 12 hours (or modify cron for testing) and verify automatic run
 - [ ] Test failure case: introduce error in scraper, verify workflow fails gracefully
 
 ---
