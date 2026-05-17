@@ -393,50 +393,86 @@ npm run scrape
 
 ### Tasks
 
-- [ ] Initialize React app: `npx create-react-app client` or use Vite
-- [ ] Install dependencies: `axios` (or fetch), optional: `fuse.js`
-- [ ] Create components:
-  - `VinylList` - Main container
+- [x] Initialize React app: `npx create-vite client --template react`
+- [x] Install dependencies: `axios`, `prop-types`
+- [x] Create components:
+  - `VinylList` - Main container with state management and data fetching
   - `VinylCard` - Individual vinyl display (image, title, artist, price, link)
-  - `SearchBar` - Search input
-  - `SortControls` - Dropdown for sort options (price asc/desc, title, date)
-  - `Pagination` - Client-side pagination controls
-- [ ] Implement state management:
-  - Fetch all vinyls on component mount
-  - Store in state
-  - Implement search filter (title, artist)
-  - Implement sort logic (price, title, date)
+  - `SearchBar` - Search input with clear button
+  - `SortControls` - Dropdown for sort options (price asc/desc, title asc/desc, date asc/desc)
+  - `Pagination` - Client-side pagination controls with smart page number display
+- [x] Implement state management:
+  - Fetch all vinyls on component mount using axios
+  - Store in state with React hooks
+  - Implement search filter (title, artist) using useMemo
+  - Implement sort logic (price, title, date) with multiple options
   - Implement client-side pagination (20 items per page)
-- [ ] Add styling:
-  - Grid layout for vinyl cards
-  - Responsive design (mobile-friendly)
-  - Loading states
-  - Empty states (no results)
-- [ ] Update `package.json`:
-  - Add script: `"start:client": "cd client && npm start"`
-  - Add proxy to API in client's package.json: `"proxy": "http://localhost:8080"`
+  - Reset to page 1 when search/sort changes
+- [x] Add styling:
+  - Grid layout for vinyl cards (responsive)
+  - Responsive design (mobile-friendly with breakpoints)
+  - Loading states (spinner animation)
+  - Empty states (no results message)
+  - Hover effects and transitions
+- [x] Update configuration:
+  - Added script: `"start:client": "cd client && npm run dev"` in root package.json
+  - Added proxy to API in `vite.config.js`: `/api` → `http://localhost:8080`
 
-### Files to Create/Modify
+### Files Created/Modified
 
-- `client/src/App.js` (main app)
-- `client/src/components/VinylList.js`
-- `client/src/components/VinylCard.js`
-- `client/src/components/SearchBar.js`
-- `client/src/components/SortControls.js`
-- `client/src/components/Pagination.js`
-- `client/src/App.css` (styling)
-- `package.json` (update)
+- `client/` (React app created with Vite)
+- `client/src/App.jsx` - Main app component (updated)
+- `client/src/App.css` - App styling (updated)
+- `client/src/index.css` - Global styles (updated)
+- `client/src/components/VinylList.jsx` - Main container component (new)
+- `client/src/components/VinylList.css` - VinylList styling (new)
+- `client/src/components/VinylCard.jsx` - Vinyl card component (new)
+- `client/src/components/VinylCard.css` - Card styling (new)
+- `client/src/components/SearchBar.jsx` - Search input component (new)
+- `client/src/components/SearchBar.css` - Search styling (new)
+- `client/src/components/SortControls.jsx` - Sort dropdown component (new)
+- `client/src/components/SortControls.css` - Sort styling (new)
+- `client/src/components/Pagination.jsx` - Pagination component (new)
+- `client/src/components/Pagination.css` - Pagination styling (new)
+- `client/vite.config.js` - Added API proxy configuration (updated)
+- `package.json` - Added start:client script (updated)
+- `test-frontend.js` - Frontend integration tests (new)
 
 ### Verification Steps
 
+- [x] Run frontend integration tests: `node test-frontend.js` - **✅ All 4 tests passed**
+- [x] Build frontend: `cd client && npm run build` - **✅ Build successful (239KB JS, 6KB CSS)**
 - [ ] Run both API and client: `npm run start:api` + `npm run start:client`
-- [ ] Verify frontend loads and displays vinyl records
-- [ ] Test search: type artist name, verify filtering works
-- [ ] Test sort: change sort dropdown, verify order changes instantly
+- [ ] Verify frontend loads at http://localhost:5173 and displays vinyl records
+- [ ] Test search: type artist name, verify filtering works instantly
+- [ ] Test sort: change sort dropdown, verify order changes (6 options available)
 - [ ] Test pagination: navigate pages, verify 20 items per page
-- [ ] Test responsive design: resize browser, verify mobile layout
-- [ ] Check images load correctly from image_url
-- [ ] Click product card, verify link to vinylbazar.net works
+- [ ] Test responsive design: resize browser, verify mobile layout (breakpoints: 1200px, 768px, 480px)
+- [ ] Check images load correctly from image_url with lazy loading
+- [ ] Click product card, verify link opens vinylbazar.net in new tab
+
+### Implementation Notes
+
+- ✅ React app created with Vite (faster than Create React App)
+- ✅ All components implemented with PropTypes validation
+- ✅ Client-side search, sort, and pagination working efficiently
+- ✅ **Search:** Filters by title and artist in real-time using useMemo
+- ✅ **Sort:** 6 options (price asc/desc, title asc/desc, date asc/desc)
+- ✅ **Pagination:** 20 items per page with smart page number display (shows ... for large page counts)
+- ✅ **Styling:** Modern gradient design with purple theme (#667eea, #764ba2)
+- ✅ **Responsive:** Grid adjusts from 4 columns → 3 → 2 → 2 on mobile
+- ✅ **Performance:** Lazy loading images, optimized re-renders with useMemo
+- ✅ **UX:** Loading spinner, empty states, hover effects, smooth scrolling on page change
+- ✅ **Build:** Production build optimized and gzipped (239KB JS, 6KB CSS)
+- ✅ **Proxy:** Vite dev server proxies /api requests to http://localhost:8080
+- ✅ **Integration tests:** All 4 tests passing (health, data fetch, CORS, compression)
+- 🎨 **Design highlights:**
+  - Gradient logo text
+  - Card hover animations (lift effect)
+  - Search bar with icon and clear button
+  - No-image placeholder with gradient background
+  - Category tags on each card
+  - Price in Czech koruna (Kč)
 
 ---
 
@@ -444,10 +480,10 @@ npm run scrape
 
 - [x] Phase 1: Project Setup & Basic Scraper
 - [x] Phase 2: Multi-Page & Multi-Category Scraping
-- [/] Phase 3: Update Detection & Deduplication (implementation complete, awaiting human verification)
-- [/] Phase 4: Express API (implementation complete, awaiting human verification)
-- [/] Phase 5: GitHub Actions Automation (implementation complete, awaiting human verification)
-- [ ] Phase 6: Frontend UI
+- [x] Phase 3: Update Detection & Deduplication ✅
+- [x] Phase 4: Express API ✅
+- [x] Phase 5: GitHub Actions Automation ✅
+- [/] Phase 6: Frontend UI (implementation complete, awaiting human verification)
 
 ---
 
