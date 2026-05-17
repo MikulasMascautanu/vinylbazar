@@ -1,4 +1,4 @@
-import { Vinyl } from "../types/vinyl";
+import { Vinyl, isNewRecord } from "../types/vinyl";
 import "./VinylCard.css";
 
 interface VinylCardProps {
@@ -10,14 +10,17 @@ const VinylCard: React.FC<VinylCardProps> = ({ vinyl }) => {
 		return price ? `${price.toFixed(0)} Kč` : "N/A";
 	};
 
+	const isNew = isNewRecord(vinyl);
+
 	return (
-		<div className="vinyl-card">
+		<div className={`vinyl-card ${isNew ? "vinyl-card-new" : ""}`}>
 			<a
 				href={vinyl.product_url}
 				target="_blank"
 				rel="noopener noreferrer"
 				className="vinyl-card-link"
 			>
+				{isNew && <div className="vinyl-card-new-badge">NEW</div>}
 				<div className="vinyl-card-image-container">
 					{vinyl.image_url ? (
 						<img

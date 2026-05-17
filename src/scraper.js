@@ -53,25 +53,38 @@ async function extractCategories() {
 
 /**
  * Parse artist and title from product title string
- * Pattern: "FORMAT Artist – Title" (em-dash separator)
+ * Pattern: "FORMAT Artist – Title" (em-dash or hyphen separator)
  * Examples:
  *   "LP+7" Jefferson Starship – Gold" -> artist: "Jefferson Starship", title: "Gold (LP+7")"
  *   "LP Jerry Harrison : Casual Gods – Casual Gods" -> artist: "Jerry Harrison : Casual Gods", title: "Casual Gods (LP)"
  *   "2xLP Eminem – Recovery" -> artist: "Eminem", title: "Recovery (2xLP)"
+ *   "LP ABBA - Björn, Benny, Agnetha & Frida" -> artist: "ABBA", title: "Björn, Benny, Agnetha & Frida (LP)"
  */
 function parseArtistAndTitle(fullTitle) {
-	// Look for em-dash separator (–) which is different from hyphen (-)
-	const emDashIndex = fullTitle.indexOf(" – ");
+	// Remove invisible Unicode characters (left-to-right mark, zero-width spaces, etc.)
+	// These characters can interfere with parsing
+	const cleaned = fullTitle
+		.replace(
+			/[\u200E\u200F\u202A\u202B\u202C\u202D\u202E\u2060\u2066\u2067\u2068\u2069\uFEFF]/g,
+			"",
+		)
+		.trim();
 
-	if (emDashIndex > 0) {
-		// Extract the part before em-dash (contains format + artist)
-		const beforeDash = fullTitle.substring(0, emDashIndex).trim();
-		// Extract title (after em-dash)
-		const titlePart = fullTitle.substring(emDashIndex + 3).trim();
+	// Look for em-dash (–) or regular hyphen (-) separator
+	// Match with optional whitespace around it
+	// Use non-greedy match (.+?) to find the first occurrence
+	const dashMatch = cleaned.match(/^(.+?)\s*[–-]\s*(.+)$/);
+
+	if (dashMatch) {
+		// Extract the part before dash (contains format + artist)
+		const beforeDash = dashMatch[1].trim();
+		// Extract title (after dash)
+		const titlePart = dashMatch[2].trim();
 
 		// Extract format prefix (LP, 2xLP, LP+7", etc.)
-		// Format is typically at the start, followed by space
-		const formatMatch = beforeDash.match(/^([\dxLP+"'\s]+)\s+(.+)$/);
+		// Format patterns: LP, 2xLP, LP+7", 3xLP+7", etc.
+		// More restrictive pattern to avoid matching too much
+		const formatMatch = beforeDash.match(/^(\d*x?LP(?:\+\d+")?)\s+(.+)$/i);
 
 		if (formatMatch) {
 			const format = formatMatch[1].trim();
@@ -88,10 +101,10 @@ function parseArtistAndTitle(fullTitle) {
 		}
 	}
 
-	// Fallback: no em-dash found, return title as-is with no artist
+	// Fallback: no dash found, return title as-is with no artist
 	return {
 		artist: null,
-		title: fullTitle.trim(),
+		title: cleaned,
 	};
 }
 
