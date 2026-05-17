@@ -70,7 +70,7 @@ GET /api/vinyls - Returns all vinyl records (frontend handles search/sort/pagina
 
 **GitHub Actions workflow:**
 
-- Trigger: `cron: '0 */6 * * *'` (every 6 hours)
+- Trigger: `cron: '0 4 * * *'` (4 AM daily)
 - Steps:
   1. Checkout repo
   2. Run scraper script

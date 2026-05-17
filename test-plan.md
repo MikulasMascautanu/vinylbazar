@@ -1,0 +1,6 @@
+- [ ] Push changes to GitHub (workflow, gitignore, database)
+- [ ] Navigate to Actions tab and manually trigger "Vinyl Scraper Automation" workflow
+- [ ] Verify workflow completes successfully (green checkmark)
+- [ ] Check a new commit was created with message "Auto-update: Scraped vinyl records..."
+- [ ] Verify database file size in commit is reasonable (should be ~1MB)
+- [ ] Wait until next day at 4 AM and confirm automatic cron run executes successfully

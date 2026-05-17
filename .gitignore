@@ -1,8 +1,8 @@
 # Dependencies
 node_modules/
 
-# Database (exclude during development, will include in later phase)
-data/*.db
+# Database (now included for GitHub Actions automation)
+# data/*.db - removed to allow committing vinyls.db
 
 # Logs
 *.log
