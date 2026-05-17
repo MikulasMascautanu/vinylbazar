@@ -1,5 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import axios from "axios";
+import { Vinyl, SortOption } from "../types/vinyl";
+import { VinylsResponse } from "../types/api";
 import VinylCard from "./VinylCard";
 import SearchBar from "./SearchBar";
 import SortControls from "./SortControls";
@@ -8,27 +10,29 @@ import "./VinylList.css";
 
 const ITEMS_PER_PAGE = 20;
 
-const VinylList = () => {
-	const [vinyls, setVinyls] = useState([]);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-	const [searchQuery, setSearchQuery] = useState("");
-	const [sortBy, setSortBy] = useState("date-desc");
-	const [currentPage, setCurrentPage] = useState(1);
+const VinylList: React.FC = () => {
+	const [vinyls, setVinyls] = useState<Vinyl[]>([]);
+	const [loading, setLoading] = useState<boolean>(true);
+	const [error, setError] = useState<string | null>(null);
+	const [searchQuery, setSearchQuery] = useState<string>("");
+	const [sortBy, setSortBy] = useState<SortOption>("date-desc");
+	const [currentPage, setCurrentPage] = useState<number>(1);
 
 	// Fetch data on mount
 	useEffect(() => {
 		const fetchVinyls = async () => {
 			try {
 				setLoading(true);
-				const response = await axios.get("/api/vinyls");
+				const response = await axios.get<VinylsResponse>("/api/vinyls");
 				if (response.data.success) {
 					setVinyls(response.data.data);
 				} else {
 					throw new Error("Failed to fetch vinyls");
 				}
 			} catch (err) {
-				setError(err.message || "Failed to load vinyl records");
+				const errorMessage =
+					err instanceof Error ? err.message : "Failed to load vinyl records";
+				setError(errorMessage);
 				console.error("Error fetching vinyls:", err);
 			} finally {
 				setLoading(false);
@@ -67,12 +71,14 @@ const VinylList = () => {
 				return sorted.sort((a, b) => b.title.localeCompare(a.title));
 			case "date-asc":
 				return sorted.sort(
-					(a, b) => new Date(a.scraped_at) - new Date(b.scraped_at),
+					(a, b) =>
+						new Date(a.scraped_at).getTime() - new Date(b.scraped_at).getTime(),
 				);
 			case "date-desc":
 			default:
 				return sorted.sort(
-					(a, b) => new Date(b.scraped_at) - new Date(a.scraped_at),
+					(a, b) =>
+						new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime(),
 				);
 		}
 	}, [filteredVinyls, sortBy]);
@@ -86,17 +92,17 @@ const VinylList = () => {
 
 	const totalPages = Math.ceil(sortedVinyls.length / ITEMS_PER_PAGE);
 
-	const handleSearchChange = (query) => {
+	const handleSearchChange = (query: string): void => {
 		setSearchQuery(query);
 		setCurrentPage(1); // Reset to page 1 when search changes
 	};
 
-	const handleSortChange = (newSortBy) => {
+	const handleSortChange = (newSortBy: SortOption): void => {
 		setSortBy(newSortBy);
 		setCurrentPage(1); // Reset to page 1 when sort changes
 	};
 
-	const handlePageChange = (page) => {
+	const handlePageChange = (page: number): void => {
 		setCurrentPage(page);
 		window.scrollTo({ top: 0, behavior: "smooth" });
 	};
