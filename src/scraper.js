@@ -110,12 +110,9 @@ function parsePrice(priceText) {
 }
 
 /**
- * Scrape products from a category page
+ * Scrape products from a single page
  */
-async function scrapeCategoryPage(categoryUrl, categoryName) {
-	const html = await fetchHTML(categoryUrl);
-	const root = parse(html);
-
+function scrapeProductsFromPage(root, categoryName) {
 	const productElements = root.querySelectorAll(config.selectors.product);
 	const products = [];
 
@@ -162,8 +159,87 @@ async function scrapeCategoryPage(categoryUrl, categoryName) {
 }
 
 /**
+ * Find the next page URL from the current page
+ */
+function findNextPageUrl(root) {
+	const nextLink = root.querySelector(config.selectors.nextPage);
+	if (!nextLink) return null;
+
+	const href = nextLink.getAttribute("href");
+	if (!href) return null;
+
+	return href.startsWith("http") ? href : `${config.baseUrl}${href}`;
+}
+
+/**
+ * Add delay between requests
+ */
+function delay(ms) {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Scrape all pages from a category
+ */
+async function scrapeCategoryAllPages(
+	categoryUrl,
+	categoryName,
+	categoryIndex,
+	totalCategories,
+) {
+	const allProducts = [];
+	let currentUrl = categoryUrl;
+	let pageNumber = 1;
+	const failedUrls = [];
+
+	while (currentUrl) {
+		try {
+			// Fetch and parse the page
+			const html = await fetchHTML(currentUrl);
+			const root = parse(html);
+
+			// Extract products from this page
+			const products = scrapeProductsFromPage(root, categoryName);
+			allProducts.push(...products);
+
+			// Log progress
+			console.log(
+				`Category: ${categoryName} (${categoryIndex}/${totalCategories}) | Page ${pageNumber} | Products: ${products.length} | Total: ${allProducts.length}`,
+			);
+
+			// Find next page URL
+			const nextUrl = findNextPageUrl(root);
+
+			// Add delay before next request
+			if (nextUrl) {
+				await delay(config.scraping.requestDelay);
+			}
+
+			currentUrl = nextUrl;
+			pageNumber++;
+		} catch (error) {
+			console.error(
+				`Error scraping page ${pageNumber} of ${categoryName}:`,
+				error.message,
+			);
+			console.error(`Failed URL: ${currentUrl}`);
+			failedUrls.push({
+				url: currentUrl,
+				category: categoryName,
+				page: pageNumber,
+			});
+
+			// Continue to next page if available (but we can't get it from failed page)
+			break;
+		}
+	}
+
+	return { products: allProducts, failedUrls };
+}
+
+/**
  * Main scraping function
- * For Phase 1: Extract categories and scrape first category only
+ * Phase 2: Extract categories and scrape all categories with pagination
  */
 export async function scrapeVinyls() {
 	console.log("Starting vinyl scraper...\n");
@@ -174,41 +250,105 @@ export async function scrapeVinyls() {
 	categories.forEach((cat, index) => {
 		console.log(`  ${index + 1}. ${cat.name}`);
 	});
+	console.log(); // Empty line for readability
 
-	// For Phase 1: Scrape only the first category
-	if (categories.length > 0) {
-		const firstCategory = categories[0];
-		console.log(`\nScraping first category: ${firstCategory.name}`);
-		console.log(`URL: ${firstCategory.url}\n`);
-
-		const products = await scrapeCategoryPage(
-			firstCategory.url,
-			firstCategory.name,
-		);
-		console.log(`Extracted ${products.length} products from first page\n`);
-
-		// Insert products into database
-		let inserted = 0;
-		let skipped = 0;
-
-		for (const product of products) {
-			try {
-				const result = await db.insertVinyl(product);
-				if (result.skipped) {
-					skipped++;
-				} else {
-					inserted++;
-				}
-			} catch (error) {
-				console.error(`Error inserting product "${product.title}":`, error.message);
-			}
-		}
-
-		console.log(`\nResults:`);
-		console.log(`  Inserted: ${inserted}`);
-		console.log(`  Skipped (duplicates): ${skipped}`);
-		console.log(`  Total in database: ${await db.getCount()}`);
-	} else {
+	if (categories.length === 0) {
 		console.log("No categories found!");
+		return;
 	}
+
+	// Track overall statistics
+	let totalInserted = 0;
+	let totalSkipped = 0;
+	let totalScraped = 0;
+	const allFailedUrls = [];
+
+	// Scrape all categories
+	for (let i = 0; i < categories.length; i++) {
+		const category = categories[i];
+		const categoryIndex = i + 1;
+
+		console.log(`\n${"=".repeat(60)}`);
+		console.log(
+			`Starting category: ${category.name} (${categoryIndex}/${categories.length})`,
+		);
+		console.log(`URL: ${category.url}`);
+		console.log("=".repeat(60));
+
+		try {
+			// Scrape all pages in this category
+			const { products, failedUrls } = await scrapeCategoryAllPages(
+				category.url,
+				category.name,
+				categoryIndex,
+				categories.length,
+			);
+
+			totalScraped += products.length;
+			allFailedUrls.push(...failedUrls);
+
+			console.log(
+				`\nCategory "${category.name}" complete: ${products.length} products scraped`,
+			);
+
+			// Insert products into database
+			let categoryInserted = 0;
+			let categorySkipped = 0;
+
+			for (const product of products) {
+				try {
+					const result = await db.insertVinyl(product);
+					if (result.skipped) {
+						categorySkipped++;
+					} else {
+						categoryInserted++;
+					}
+				} catch (error) {
+					console.error(
+						`Error inserting product "${product.title}":`,
+						error.message,
+					);
+				}
+			}
+
+			totalInserted += categoryInserted;
+			totalSkipped += categorySkipped;
+
+			console.log(
+				`Database: ${categoryInserted} inserted, ${categorySkipped} skipped (duplicates)`,
+			);
+
+			// Add delay between categories
+			if (categoryIndex < categories.length) {
+				await delay(config.scraping.requestDelay);
+			}
+		} catch (error) {
+			console.error(`Error scraping category "${category.name}":`, error.message);
+			allFailedUrls.push({
+				url: category.url,
+				category: category.name,
+				page: "category-level-error",
+			});
+		}
+	}
+
+	// Print final summary
+	console.log(`\n${"=".repeat(60)}`);
+	console.log("SCRAPING COMPLETE");
+	console.log("=".repeat(60));
+	console.log(`Categories processed: ${categories.length}`);
+	console.log(`Total products scraped: ${totalScraped}`);
+	console.log(`Database inserted: ${totalInserted}`);
+	console.log(`Database skipped (duplicates): ${totalSkipped}`);
+	console.log(`Total in database: ${await db.getCount()}`);
+
+	if (allFailedUrls.length > 0) {
+		console.log(`\n⚠️  Failed URLs: ${allFailedUrls.length}`);
+		allFailedUrls.forEach((failed) => {
+			console.log(`  - ${failed.category} (Page ${failed.page}): ${failed.url}`);
+		});
+	} else {
+		console.log(`\n✅ All pages scraped successfully!`);
+	}
+	console.log("=".repeat(60));
 }
