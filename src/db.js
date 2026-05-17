@@ -3,17 +3,17 @@
  * Handles connection, schema initialization, and data operations
  */
 
-import sqlite3 from 'sqlite3';
-import { config } from './config.js';
+import sqlite3 from "sqlite3";
+import { config } from "./config.js";
 
 // Create a promise-based wrapper for sqlite3
 class Database {
 	constructor(dbPath) {
 		this.db = new sqlite3.Database(dbPath, (err) => {
 			if (err) {
-				console.error('Error opening database:', err.message);
+				console.error("Error opening database:", err.message);
 			} else {
-				console.log('Connected to SQLite database at', dbPath);
+				console.log("Connected to SQLite database at", dbPath);
 			}
 		});
 	}
@@ -36,47 +36,70 @@ class Database {
 		return new Promise((resolve, reject) => {
 			this.db.run(schema, (err) => {
 				if (err) {
-					console.error('Error creating schema:', err.message);
+					console.error("Error creating schema:", err.message);
 					reject(err);
 				} else {
-					console.log('Database schema initialized');
+					console.log("Database schema initialized");
 					resolve();
 				}
 			});
 		});
 	}
 
-	// Insert a vinyl record into the database
+	// Insert or update a vinyl record in the database
+	// Returns: { id, isNew: true } for new records, { id, isNew: false } for updates
 	async insertVinyl(vinyl) {
-		const sql = `
-			INSERT INTO vinyls (title, artist, price, image_url, product_url, category)
-			VALUES (?, ?, ?, ?, ?, ?)
-		`;
+		// First check if the record exists
+		const checkSql = `SELECT id FROM vinyls WHERE product_url = ?`;
 
 		return new Promise((resolve, reject) => {
-			this.db.run(
-				sql,
-				[vinyl.title, vinyl.artist, vinyl.price, vinyl.image_url, vinyl.product_url, vinyl.category],
-				function (err) {
-					if (err) {
-						// Ignore duplicate entries (unique constraint on product_url)
-						if (err.message.includes('UNIQUE constraint failed')) {
-							resolve({ id: null, skipped: true });
-						} else {
-							reject(err);
-						}
-					} else {
-						resolve({ id: this.lastID, skipped: false });
-					}
+			this.db.get(checkSql, [vinyl.product_url], (err, row) => {
+				if (err) {
+					reject(err);
+					return;
 				}
-			);
+
+				const isNew = !row;
+
+				// Use INSERT OR REPLACE to handle both new and existing records
+				const sql = `
+					INSERT INTO vinyls (title, artist, price, image_url, product_url, category, scraped_at)
+					VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+					ON CONFLICT(product_url) DO UPDATE SET
+						title = excluded.title,
+						artist = excluded.artist,
+						price = excluded.price,
+						image_url = excluded.image_url,
+						category = excluded.category,
+						scraped_at = CURRENT_TIMESTAMP
+				`;
+
+				this.db.run(
+					sql,
+					[
+						vinyl.title,
+						vinyl.artist,
+						vinyl.price,
+						vinyl.image_url,
+						vinyl.product_url,
+						vinyl.category,
+					],
+					function (err) {
+						if (err) {
+							reject(err);
+						} else {
+							resolve({ id: this.lastID, isNew });
+						}
+					},
+				);
+			});
 		});
 	}
 
 	// Get count of all vinyl records
 	async getCount() {
 		return new Promise((resolve, reject) => {
-			this.db.get('SELECT COUNT(*) as count FROM vinyls', (err, row) => {
+			this.db.get("SELECT COUNT(*) as count FROM vinyls", (err, row) => {
 				if (err) {
 					reject(err);
 				} else {
@@ -89,7 +112,7 @@ class Database {
 	// Get all vinyl records
 	async getAll() {
 		return new Promise((resolve, reject) => {
-			this.db.all('SELECT * FROM vinyls', (err, rows) => {
+			this.db.all("SELECT * FROM vinyls", (err, rows) => {
 				if (err) {
 					reject(err);
 				} else {
@@ -106,7 +129,7 @@ class Database {
 				if (err) {
 					reject(err);
 				} else {
-					console.log('Database connection closed');
+					console.log("Database connection closed");
 					resolve();
 				}
 			});

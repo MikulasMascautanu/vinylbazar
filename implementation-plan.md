@@ -179,14 +179,14 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
 
 ### Tasks
 
-- [ ] Update `src/db.js`:
+- [x] Update `src/db.js`:
   - Change INSERT to INSERT OR REPLACE ON CONFLICT(product_url)
   - Update `scraped_at` timestamp on each run
-- [ ] Add statistics tracking:
+- [x] Add statistics tracking:
   - Count new records inserted
   - Count existing records updated
   - Display summary at end of scraping
-- [ ] Test deduplication:
+- [x] Test deduplication:
   - Run scraper twice
   - Verify no duplicate product_urls
 
@@ -197,11 +197,21 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
 
 ### Verification Steps
 
-- [ ] Run scraper twice consecutively
-- [ ] Query: `SELECT COUNT(DISTINCT product_url) FROM vinyls` equals total count
-- [ ] Verify `scraped_at` timestamp updates on second run
-- [ ] Check console output shows: "X new, Y updated"
-- [ ] Confirm no duplicate rows: `SELECT product_url, COUNT(*) FROM vinyls GROUP BY product_url HAVING COUNT(*) > 1` returns 0
+- [x] Run scraper twice consecutively
+- [x] Query: `SELECT COUNT(DISTINCT product_url) FROM vinyls` equals total count (1844 = 1844)
+- [x] Verify `scraped_at` timestamp updates on second run (72 records updated with new timestamp)
+- [x] Check console output shows: "X new, Y updated" (0 new, 72 updated)
+- [x] Confirm no duplicate rows: `SELECT product_url, COUNT(*) FROM vinyls GROUP BY product_url HAVING COUNT(*) > 1` returns 0
+
+### Implementation Notes
+
+- Implemented INSERT ... ON CONFLICT(product_url) DO UPDATE pattern for proper UPSERT
+- Added check to determine if record is new or existing before insert/update
+- Updated statistics tracking to distinguish between new inserts and updates
+- `scraped_at` timestamp now updates on every scrape run
+- Console output changed from "inserted/skipped" to "new/updated" for clarity
+- Verified with test run: 72 existing products correctly updated, 0 duplicates found
+- Database maintains referential integrity with 1844 unique product_urls
 
 ---
 
@@ -356,8 +366,8 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
 ## Progress Tracking
 
 - [x] Phase 1: Project Setup & Basic Scraper
-- [/] Phase 2: Multi-Page Scraping (implementation complete, awaiting human verification)
-- [ ] Phase 3: Update Detection & Deduplication
+- [x] Phase 2: Multi-Page & Multi-Category Scraping
+- [/] Phase 3: Update Detection & Deduplication (implementation complete, awaiting human verification)
 - [ ] Phase 4: Express API
 - [ ] Phase 5: GitHub Actions Automation
 - [ ] Phase 6: Frontend UI

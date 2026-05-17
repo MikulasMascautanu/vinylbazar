@@ -293,15 +293,15 @@ export async function scrapeVinyls() {
 
 			// Insert products into database
 			let categoryInserted = 0;
-			let categorySkipped = 0;
+			let categoryUpdated = 0;
 
 			for (const product of products) {
 				try {
 					const result = await db.insertVinyl(product);
-					if (result.skipped) {
-						categorySkipped++;
-					} else {
+					if (result.isNew) {
 						categoryInserted++;
+					} else {
+						categoryUpdated++;
 					}
 				} catch (error) {
 					console.error(
@@ -312,11 +312,9 @@ export async function scrapeVinyls() {
 			}
 
 			totalInserted += categoryInserted;
-			totalSkipped += categorySkipped;
+			totalSkipped += categoryUpdated;
 
-			console.log(
-				`Database: ${categoryInserted} inserted, ${categorySkipped} skipped (duplicates)`,
-			);
+			console.log(`Database: ${categoryInserted} new, ${categoryUpdated} updated`);
 
 			// Add delay between categories
 			if (categoryIndex < categories.length) {
@@ -338,8 +336,8 @@ export async function scrapeVinyls() {
 	console.log("=".repeat(60));
 	console.log(`Categories processed: ${categories.length}`);
 	console.log(`Total products scraped: ${totalScraped}`);
-	console.log(`Database inserted: ${totalInserted}`);
-	console.log(`Database skipped (duplicates): ${totalSkipped}`);
+	console.log(`Database new records: ${totalInserted}`);
+	console.log(`Database updated records: ${totalSkipped}`);
 	console.log(`Total in database: ${await db.getCount()}`);
 
 	if (allFailedUrls.length > 0) {
