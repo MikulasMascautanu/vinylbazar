@@ -167,51 +167,91 @@ Build a vinyl records scraper for https://www.vinylbazar.net that extracts produ
 
 ---
 
-## Phase 3: Update Detection & Deduplication
+## Phase 3: Update Detection, Deduplication & Incremental Scraping ✅
 
-**Goal:** Implement UPSERT logic to handle updates and prevent duplicates.
+**Goal:** Implement UPSERT logic, prevent duplicates, and add intelligent incremental scraping.
 
 ### Context
 
 - **Unique Key:** `product_url` (from [goal.md](goal.md))
-- **Strategy:** INSERT OR REPLACE to update existing records
+- **Strategy:** INSERT ... ON CONFLICT(product_url) DO UPDATE to update existing records
 - **Price Handling:** Simple overwrite (no history tracking)
+- **Incremental Scraping:** Products are listed newest-first, so we can stop when hitting existing products
+- **Optimization:** Saves time by not re-scraping the entire catalog every run (1844 products → ~50-100 products)
 
 ### Tasks
 
 - [x] Update `src/db.js`:
-  - Change INSERT to INSERT OR REPLACE ON CONFLICT(product_url)
+  - Implement UPSERT using ON CONFLICT(product_url) DO UPDATE
   - Update `scraped_at` timestamp on each run
-- [x] Add statistics tracking:
-  - Count new records inserted
-  - Count existing records updated
-  - Display summary at end of scraping
-- [x] Test deduplication:
-  - Run scraper twice
-  - Verify no duplicate product_urls
+  - Add `productExists()` method to check if product already exists
+  - Return `isNew` flag to distinguish inserts from updates
+- [x] Add incremental scraping to `src/config.js`:
+  - Add `incrementalMode` flag (default: true)
+  - Add `stopAfterExisting` threshold (default: 5 consecutive existing products)
+  - Option to disable and scrape entire site by setting `incrementalMode: false`
+- [x] Update `src/scraper.js`:
+  - Implement incremental mode in `scrapeCategoryAllPages()`
+  - Track consecutive existing products per category
+  - Stop category scraping when threshold reached
+  - Display "Consecutive existing: X" in progress logs
+  - Add statistics tracking: new vs updated records
+  - Display summary at end: "Database: X new, Y updated"
 
-### Files to Modify
+### Files Modified
 
-- `src/db.js`
-- `src/scraper.js` (add statistics)
+- `src/db.js` - Added productExists(), implemented UPSERT
+- `src/config.js` - Added incrementalMode and stopAfterExisting settings
+- `src/scraper.js` - Implemented incremental scraping logic
 
 ### Verification Steps
 
 - [x] Run scraper twice consecutively
 - [x] Query: `SELECT COUNT(DISTINCT product_url) FROM vinyls` equals total count (1844 = 1844)
-- [x] Verify `scraped_at` timestamp updates on second run (72 records updated with new timestamp)
-- [x] Check console output shows: "X new, Y updated" (0 new, 72 updated)
+- [x] Verify `scraped_at` timestamp updates on second run (records updated with new timestamp)
+- [x] Check console output shows: "Database: X new, Y updated" (e.g., "0 new, 5 updated per category")
 - [x] Confirm no duplicate rows: `SELECT product_url, COUNT(*) FROM vinyls GROUP BY product_url HAVING COUNT(*) > 1` returns 0
+- [x] Test incremental mode on second run: ✅ Verified - stops after finding 5 consecutive existing products
+  - Shows message: "⏸️ Incremental mode: Found 5 consecutive existing products. Stopping category."
+  - Scrapes ~5 products per category instead of all ~1844 products
+  - Dramatically faster: ~1-2 minutes vs ~15-30 minutes for full scrape
+- [ ] Test full scrape mode: Set `incrementalMode: false` in config, verify entire site is scraped
 
 ### Implementation Notes
 
-- Implemented INSERT ... ON CONFLICT(product_url) DO UPDATE pattern for proper UPSERT
-- Added check to determine if record is new or existing before insert/update
-- Updated statistics tracking to distinguish between new inserts and updates
-- `scraped_at` timestamp now updates on every scrape run
-- Console output changed from "inserted/skipped" to "new/updated" for clarity
-- Verified with test run: 72 existing products correctly updated, 0 duplicates found
-- Database maintains referential integrity with 1844 unique product_urls
+- ✅ UPSERT working correctly using SQLite's ON CONFLICT clause
+- ✅ Deduplication verified - no duplicate product_urls in database
+- ✅ Statistics tracking shows breakdown of new vs updated records
+- ✅ Incremental mode implemented - stops when finding 5 consecutive existing products
+- ⚡ **Performance:** Incremental mode reduces scraping time from ~15-30 minutes (full site) to ~1-2 minutes (recent updates only)
+- 🔧 **Configurable:** Set `incrementalMode: false` to force full scrape when needed (e.g., after site changes)
+
+### How to Use
+
+**Incremental mode (default - recommended for regular updates):**
+
+```bash
+# config.js has incrementalMode: true
+npm run scrape
+# Stops after finding 5 consecutive existing products per category
+# Fast: ~1-2 minutes, scrapes only new/recent products
+```
+
+**Full scrape mode (for initial scrape or when you suspect missing products):**
+
+```javascript
+// In src/config.js, set:
+scraping: {
+  incrementalMode: false,  // Change to false
+  stopAfterExisting: 5,
+}
+```
+
+```bash
+npm run scrape
+# Scrapes entire site, all categories, all pages
+# Slow: ~15-30 minutes, ~1844 products
+```
 
 ---
 

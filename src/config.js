@@ -5,21 +5,21 @@
 
 export const config = {
 	// Base URL for the website
-	baseUrl: 'https://www.vinylbazar.net',
+	baseUrl: "https://www.vinylbazar.net",
 
 	// CSS selectors for scraping
 	selectors: {
-		menuItem: '.root-eshop-menu > .leftmenuDef a', // Category links
-		product: '.productBody', // Product container
+		menuItem: ".root-eshop-menu > .leftmenuDef a", // Category links
+		product: ".productBody", // Product container
 		nextPage: '[rel="next"]', // Pagination link
-		title: '.productTitleContent a', // Product title
-		price: '.product_price_text', // Product price
-		img: '.img_box a img:first-of-type', // Product image
+		title: ".productTitleContent a", // Product title
+		price: ".product_price_text", // Product price
+		img: ".img_box a img:first-of-type", // Product image
 	},
 
 	// Database configuration
 	database: {
-		path: './data/vinyls.db',
+		path: "./data/vinyls.db",
 	},
 
 	// Scraping configuration
@@ -28,5 +28,11 @@ export const config = {
 		requestDelay: 500,
 		// Maximum number of retries for failed requests
 		maxRetries: 3,
+		// Incremental scraping: stop when hitting existing products
+		// Set to false to always scrape the entire site
+		incrementalMode: true,
+		// Number of consecutive existing products to encounter before stopping
+		// (to handle occasional updates in the middle of the list)
+		stopAfterExisting: 5,
 	},
 };

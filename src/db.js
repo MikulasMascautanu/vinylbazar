@@ -96,6 +96,23 @@ class Database {
 		});
 	}
 
+	// Check if a product exists by URL
+	async productExists(productUrl) {
+		return new Promise((resolve, reject) => {
+			this.db.get(
+				"SELECT id FROM vinyls WHERE product_url = ?",
+				[productUrl],
+				(err, row) => {
+					if (err) {
+						reject(err);
+					} else {
+						resolve(!!row); // Returns true if row exists, false otherwise
+					}
+				},
+			);
+		});
+	}
+
 	// Get count of all vinyl records
 	async getCount() {
 		return new Promise((resolve, reject) => {

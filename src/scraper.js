@@ -180,6 +180,7 @@ function delay(ms) {
 
 /**
  * Scrape all pages from a category
+ * Supports incremental mode: stops when hitting existing products
  */
 async function scrapeCategoryAllPages(
 	categoryUrl,
@@ -191,6 +192,8 @@ async function scrapeCategoryAllPages(
 	let currentUrl = categoryUrl;
 	let pageNumber = 1;
 	const failedUrls = [];
+	let consecutiveExisting = 0;
+	let stoppedEarly = false;
 
 	while (currentUrl) {
 		try {
@@ -200,11 +203,40 @@ async function scrapeCategoryAllPages(
 
 			// Extract products from this page
 			const products = scrapeProductsFromPage(root, categoryName);
-			allProducts.push(...products);
+
+			// In incremental mode, check if products already exist
+			if (config.scraping.incrementalMode) {
+				for (const product of products) {
+					const exists = await db.productExists(product.product_url);
+					if (exists) {
+						consecutiveExisting++;
+					} else {
+						consecutiveExisting = 0; // Reset counter when we find a new product
+					}
+
+					allProducts.push(product);
+
+					// Stop if we've hit enough consecutive existing products
+					if (consecutiveExisting >= config.scraping.stopAfterExisting) {
+						console.log(
+							`⏸️  Incremental mode: Found ${consecutiveExisting} consecutive existing products. Stopping category.`,
+						);
+						stoppedEarly = true;
+						break;
+					}
+				}
+
+				if (stoppedEarly) {
+					break;
+				}
+			} else {
+				// Full scraping mode: add all products
+				allProducts.push(...products);
+			}
 
 			// Log progress
 			console.log(
-				`Category: ${categoryName} (${categoryIndex}/${totalCategories}) | Page ${pageNumber} | Products: ${products.length} | Total: ${allProducts.length}`,
+				`Category: ${categoryName} (${categoryIndex}/${totalCategories}) | Page ${pageNumber} | Products: ${products.length} | Total: ${allProducts.length}${config.scraping.incrementalMode ? ` | Consecutive existing: ${consecutiveExisting}` : ""}`,
 			);
 
 			// Find next page URL
@@ -234,7 +266,7 @@ async function scrapeCategoryAllPages(
 		}
 	}
 
-	return { products: allProducts, failedUrls };
+	return { products: allProducts, failedUrls, stoppedEarly };
 }
 
 /**
