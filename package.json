@@ -6,6 +6,8 @@
 	"type": "module",
 	"scripts": {
 		"scrape": "node src/index.js",
+		"start:api": "node src/api.js",
+		"test:api": "node test-api.js",
 		"test": "echo \"Error: no test specified\" && exit 1"
 	},
 	"keywords": [
