@@ -33,6 +33,6 @@ export const config = {
 		incrementalMode: true,
 		// Number of consecutive existing products to encounter before stopping
 		// (to handle occasional updates in the middle of the list)
-		stopAfterExisting: 5,
+		stopAfterExisting: 4,
 	},
 };

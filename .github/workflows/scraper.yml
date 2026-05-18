@@ -1,9 +1,9 @@
 name: Vinyl Scraper Automation
 
 on:
- # Run at 4 AM every day
+ # Run every hour from 5 AM to 11 PM UTC
  schedule:
-  - cron: "0 4 * * *"
+  - cron: "0 5-23 * * *"
 
  # Allow manual trigger from GitHub Actions tab
  workflow_dispatch:

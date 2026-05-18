@@ -243,7 +243,7 @@ npm run scrape
 // In src/config.js, set:
 scraping: {
   incrementalMode: false,  // Change to false
-  stopAfterExisting: 5,
+  stopAfterExisting: 4,
 }
 ```
 
