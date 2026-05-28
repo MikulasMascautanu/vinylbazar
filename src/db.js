@@ -29,6 +29,7 @@ class Database {
 				image_url TEXT,
 				product_url TEXT UNIQUE NOT NULL,
 				category TEXT,
+				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 				scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP
 			)
 		`;
@@ -40,7 +41,33 @@ class Database {
 					reject(err);
 				} else {
 					console.log("Database schema initialized");
-					resolve();
+					// Add created_at column if it doesn't exist (migration for existing databases)
+					this.db.run(`ALTER TABLE vinyls ADD COLUMN created_at DATETIME`, (err) => {
+						if (err && err.message.includes("duplicate column")) {
+							// Column already exists, no migration needed
+							resolve();
+						} else if (err) {
+							console.error("Error adding created_at column:", err.message);
+							reject(err);
+						} else {
+							// Column was just added, populate it with scraped_at values for existing records
+							console.log("Migrating created_at column for existing records...");
+							this.db.run(
+								`UPDATE vinyls SET created_at = scraped_at WHERE created_at IS NULL`,
+								(err) => {
+									if (err) {
+										console.error("Error migrating created_at data:", err.message);
+										reject(err);
+									} else {
+										console.log(
+											"Migration complete: created_at populated from scraped_at",
+										);
+										resolve();
+									}
+								},
+							);
+						}
+					});
 				}
 			});
 		});
@@ -63,8 +90,8 @@ class Database {
 
 				// Use INSERT OR REPLACE to handle both new and existing records
 				const sql = `
-					INSERT INTO vinyls (title, artist, price, image_url, product_url, category, scraped_at)
-					VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+					INSERT INTO vinyls (title, artist, price, image_url, product_url, category, created_at, scraped_at)
+					VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 					ON CONFLICT(product_url) DO UPDATE SET
 						title = excluded.title,
 						artist = excluded.artist,
@@ -72,6 +99,7 @@ class Database {
 						image_url = excluded.image_url,
 						category = excluded.category,
 						scraped_at = CURRENT_TIMESTAMP
+						-- created_at is NOT updated, preserving the original creation time
 				`;
 
 				this.db.run(

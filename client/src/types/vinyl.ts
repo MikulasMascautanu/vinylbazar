@@ -9,6 +9,7 @@ export interface Vinyl {
 	image_url: string | null;
 	product_url: string;
 	category: string | null;
+	created_at: string;
 	scraped_at: string;
 }
 
@@ -25,11 +26,12 @@ export type SortOption =
 
 /**
  * Check if a vinyl record is newly added (less than 7 days old)
+ * Uses created_at to determine true new records, not just updated ones
  */
 export const isNewRecord = (vinyl: Vinyl): boolean => {
-	const scrapedDate = new Date(vinyl.scraped_at);
+	const createdDate = new Date(vinyl.created_at);
 	const now = new Date();
 	const daysDiff =
-		(now.getTime() - scrapedDate.getTime()) / (1000 * 60 * 60 * 24);
-	return daysDiff < 7;
+		(now.getTime() - createdDate.getTime()) / (1000 * 60 * 60 * 24);
+	return daysDiff < 1;
 };

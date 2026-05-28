@@ -70,16 +70,20 @@ const VinylList: React.FC = () => {
 			case "title-desc":
 				return sorted.sort((a, b) => b.title.localeCompare(a.title));
 			case "date-asc":
-				return sorted.sort(
-					(a, b) =>
-						new Date(a.scraped_at).getTime() - new Date(b.scraped_at).getTime(),
-				);
+				return sorted.sort((a, b) => {
+					const dateDiff =
+						new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
+					// If dates are the same, sort by ID (descending) to show newer IDs first
+					return dateDiff !== 0 ? dateDiff : b.id - a.id;
+				});
 			case "date-desc":
 			default:
-				return sorted.sort(
-					(a, b) =>
-						new Date(b.scraped_at).getTime() - new Date(a.scraped_at).getTime(),
-				);
+				return sorted.sort((a, b) => {
+					const dateDiff =
+						new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+					// If dates are the same, sort by ID (descending) to show newer IDs first
+					return dateDiff !== 0 ? dateDiff : b.id - a.id;
+				});
 		}
 	}, [filteredVinyls, sortBy]);
 
