@@ -35,4 +35,14 @@ export const config = {
 		// (to handle occasional updates in the middle of the list)
 		stopAfterExisting: 4,
 	},
+
+	// Email notification configuration
+	notification: {
+		// Enable/disable email notifications
+		enabled: true,
+		// Minimum number of new records to trigger notification (0 = send even if no new records)
+		minRecordsThreshold: 1,
+		// Frontend URL to include in email (can be overridden by FRONTEND_URL env var)
+		frontendUrl: process.env.FRONTEND_URL || "https://www.vinylbazar.net",
+	},
 };

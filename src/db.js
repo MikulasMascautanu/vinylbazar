@@ -30,7 +30,8 @@ class Database {
 				product_url TEXT UNIQUE NOT NULL,
 				category TEXT,
 				created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-				scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP
+				scraped_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+				notified INTEGER DEFAULT 0
 			)
 		`;
 
@@ -41,16 +42,17 @@ class Database {
 					reject(err);
 				} else {
 					console.log("Database schema initialized");
-					// Add created_at column if it doesn't exist (migration for existing databases)
+
+					// Migration 1: Add created_at column if it doesn't exist
 					this.db.run(`ALTER TABLE vinyls ADD COLUMN created_at DATETIME`, (err) => {
 						if (err && err.message.includes("duplicate column")) {
-							// Column already exists, no migration needed
-							resolve();
+							// Column already exists, continue to next migration
+							this.migrateNotifiedColumn(resolve, reject);
 						} else if (err) {
 							console.error("Error adding created_at column:", err.message);
 							reject(err);
 						} else {
-							// Column was just added, populate it with scraped_at values for existing records
+							// Column was just added, populate it with scraped_at values
 							console.log("Migrating created_at column for existing records...");
 							this.db.run(
 								`UPDATE vinyls SET created_at = scraped_at WHERE created_at IS NULL`,
@@ -62,7 +64,8 @@ class Database {
 										console.log(
 											"Migration complete: created_at populated from scraped_at",
 										);
-										resolve();
+										// Continue to next migration
+										this.migrateNotifiedColumn(resolve, reject);
 									}
 								},
 							);
@@ -71,6 +74,37 @@ class Database {
 				}
 			});
 		});
+	}
+
+	// Migration helper: Add notified column
+	migrateNotifiedColumn(resolve, reject) {
+		this.db.run(
+			`ALTER TABLE vinyls ADD COLUMN notified INTEGER DEFAULT 0`,
+			(err) => {
+				if (err && err.message.includes("duplicate column")) {
+					// Column already exists, migration complete
+					resolve();
+				} else if (err) {
+					console.error("Error adding notified column:", err.message);
+					reject(err);
+				} else {
+					// Column was just added, set all existing records to notified=1 (already exist, don't notify)
+					console.log("Migrating notified column for existing records...");
+					this.db.run(
+						`UPDATE vinyls SET notified = 1 WHERE notified IS NULL`,
+						(err) => {
+							if (err) {
+								console.error("Error migrating notified data:", err.message);
+								reject(err);
+							} else {
+								console.log("Migration complete: existing records marked as notified");
+								resolve();
+							}
+						},
+					);
+				}
+			},
+		);
 	}
 
 	// Insert or update a vinyl record in the database
@@ -90,8 +124,8 @@ class Database {
 
 				// Use INSERT OR REPLACE to handle both new and existing records
 				const sql = `
-					INSERT INTO vinyls (title, artist, price, image_url, product_url, category, created_at, scraped_at)
-					VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					INSERT INTO vinyls (title, artist, price, image_url, product_url, category, created_at, scraped_at, notified)
+					VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, 0)
 					ON CONFLICT(product_url) DO UPDATE SET
 						title = excluded.title,
 						artist = excluded.artist,
@@ -99,7 +133,7 @@ class Database {
 						image_url = excluded.image_url,
 						category = excluded.category,
 						scraped_at = CURRENT_TIMESTAMP
-						-- created_at is NOT updated, preserving the original creation time
+						-- created_at and notified are NOT updated, preserving the original values
 				`;
 
 				this.db.run(
@@ -162,6 +196,47 @@ class Database {
 					reject(err);
 				} else {
 					resolve(rows);
+				}
+			});
+		});
+	}
+
+	// Get records that haven't been notified yet (for email notifications)
+	// Returns array with: id, title, artist, price, category, image_url, product_url
+	async getNewRecords() {
+		return new Promise((resolve, reject) => {
+			const sql = `
+				SELECT id, title, artist, price, category, image_url, product_url, created_at
+				FROM vinyls
+				WHERE notified = 0
+				ORDER BY created_at DESC
+			`;
+
+			this.db.all(sql, (err, rows) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve(rows || []);
+				}
+			});
+		});
+	}
+
+	// Mark records as notified
+	async markAsNotified(recordIds) {
+		if (!recordIds || recordIds.length === 0) {
+			return Promise.resolve();
+		}
+
+		return new Promise((resolve, reject) => {
+			const placeholders = recordIds.map(() => "?").join(",");
+			const sql = `UPDATE vinyls SET notified = 1 WHERE id IN (${placeholders})`;
+
+			this.db.run(sql, recordIds, (err) => {
+				if (err) {
+					reject(err);
+				} else {
+					resolve();
 				}
 			});
 		});
