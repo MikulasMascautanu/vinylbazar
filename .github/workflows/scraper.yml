@@ -35,6 +35,11 @@ jobs:
      run: npm run scrape
      env:
       NODE_ENV: production
+      EMAIL_USER: ${{ secrets.EMAIL_USER }}
+      EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+      EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      EMAIL_TO: ${{ secrets.EMAIL_TO }}
+      FRONTEND_URL: ${{ secrets.FRONTEND_URL }}
 
    - name: Configure Git
      run: |
