@@ -285,6 +285,8 @@ The email notification is integrated directly into the scraper (src/index.js), s
 
 **Manual Testing Required:** See `test-plan.md` for user testing checklist.
 
+**Enhancement (2026-05-31):** Added support for multiple email recipients via comma-separated EMAIL_TO values.
+
 ---
 
 ## Phase 4: Documentation & Polish
@@ -307,6 +309,7 @@ The email notification is integrated directly into the scraper (src/index.js), s
   - Include vinyl images in email
   - HTML styling improvements
   - Option to disable notifications
+  - [x] Support multiple email recipients (comma-separated)
 
 ### Files to Create/Modify
 
@@ -330,7 +333,10 @@ The email notification is integrated directly into the scraper (src/index.js), s
 EMAIL_USER=your-email@gmail.com        # Gmail address
 EMAIL_PASS=xxxx-xxxx-xxxx-xxxx        # Gmail app password (16 chars)
 EMAIL_FROM=your-email@gmail.com        # Sender email (usually same as EMAIL_USER)
-EMAIL_TO=recipient@example.com         # Recipient email address
+EMAIL_TO=recipient@example.com         # Recipient email address (comma-separated for multiple)
+# Examples:
+#   Single:   EMAIL_TO=user@example.com
+#   Multiple: EMAIL_TO=user1@example.com, user2@example.com, user3@example.com
 FRONTEND_URL=https://your-site.com     # Link to your vinyl frontend (optional)
 ```
 

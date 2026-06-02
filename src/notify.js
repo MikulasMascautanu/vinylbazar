@@ -158,11 +158,24 @@ export async function sendEmailNotification(records) {
 		const transporter = createTransporter();
 
 		const emailFrom = process.env.EMAIL_FROM || process.env.EMAIL_USER;
-		const emailTo = process.env.EMAIL_TO;
+		const emailToRaw = process.env.EMAIL_TO;
 
-		if (!emailTo) {
+		if (!emailToRaw) {
 			throw new Error("EMAIL_TO environment variable is required");
 		}
+
+		// Support comma-separated list of email addresses
+		const emailTo = emailToRaw
+			.split(",")
+			.map((email) => email.trim())
+			.filter((email) => email.length > 0)
+			.join(", ");
+
+		if (!emailTo) {
+			throw new Error("EMAIL_TO must contain at least one valid email address");
+		}
+
+		const recipientCount = emailTo.split(",").length;
 
 		const date = new Date().toLocaleDateString("cs-CZ");
 		const subject = `🎵 New Vinyl Records Found - ${date}`;
@@ -178,9 +191,9 @@ export async function sendEmailNotification(records) {
 		const info = await transporter.sendMail(mailOptions);
 
 		console.log(
-			`✅ Email notification sent successfully! Message ID: ${info.messageId}`,
+			`✅ Email notification sent successfully to ${recipientCount} recipient(s)! Message ID: ${info.messageId}`,
 		);
-		return { success: true, messageId: info.messageId };
+		return { success: true, messageId: info.messageId, recipientCount };
 	} catch (error) {
 		console.error("❌ Failed to send email notification:", error.message);
 		throw error;

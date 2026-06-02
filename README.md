@@ -35,13 +35,13 @@ The scraper automatically sends email alerts when new vinyl records are found du
 2. Click **Settings** → **Secrets and variables** → **Actions**
 3. Click **New repository secret** and add each of the following:
 
-| Secret Name    | Description                        | Example                 |
-| -------------- | ---------------------------------- | ----------------------- |
-| `EMAIL_USER`   | Your Gmail address                 | `your-email@gmail.com`  |
-| `EMAIL_PASS`   | Gmail app password (16 chars)      | `xxxx-xxxx-xxxx-xxxx`   |
-| `EMAIL_FROM`   | Sender email (same as EMAIL_USER)  | `your-email@gmail.com`  |
-| `EMAIL_TO`     | Recipient email address            | `recipient@example.com` |
-| `FRONTEND_URL` | _(Optional)_ Link to your frontend | `https://yoursite.com`  |
+| Secret Name    | Description                                       | Example                                                             |
+| -------------- | ------------------------------------------------- | ------------------------------------------------------------------- |
+| `EMAIL_USER`   | Your Gmail address                                | `your-email@gmail.com`                                              |
+| `EMAIL_PASS`   | Gmail app password (16 chars)                     | `xxxx-xxxx-xxxx-xxxx`                                               |
+| `EMAIL_FROM`   | Sender email (same as EMAIL_USER)                 | `your-email@gmail.com`                                              |
+| `EMAIL_TO`     | Recipient email(s) - comma-separated for multiple | `recipient@example.com` or `email1@example.com, email2@example.com` |
+| `FRONTEND_URL` | _(Optional)_ Link to your frontend                | `https://yoursite.com`                                              |
 
 #### 3. Test the Setup
 
@@ -63,6 +63,7 @@ EMAIL_USER=your-email@gmail.com
 EMAIL_PASS=xxxx-xxxx-xxxx-xxxx
 EMAIL_FROM=your-email@gmail.com
 EMAIL_TO=recipient@example.com
+# For multiple recipients: EMAIL_TO=email1@example.com, email2@example.com, email3@example.com
 FRONTEND_URL=http://localhost:5173
 ```
 
@@ -127,13 +128,13 @@ The scraper runs automatically every hour from 5 AM to 11 PM UTC. Results are co
 
 ## Environment Variables
 
-| Variable       | Required | Description                                   |
-| -------------- | -------- | --------------------------------------------- |
-| `EMAIL_USER`   | Yes\*    | Gmail address for SMTP authentication         |
-| `EMAIL_PASS`   | Yes\*    | Gmail app password (16 characters)            |
-| `EMAIL_FROM`   | Yes\*    | Sender email (typically same as EMAIL_USER)   |
-| `EMAIL_TO`     | Yes\*    | Recipient email for notifications             |
-| `FRONTEND_URL` | No       | Link to frontend (optional, for email footer) |
+| Variable       | Required | Description                                                         |
+| -------------- | -------- | ------------------------------------------------------------------- |
+| `EMAIL_USER`   | Yes\*    | Gmail address for SMTP authentication                               |
+| `EMAIL_PASS`   | Yes\*    | Gmail app password (16 characters)                                  |
+| `EMAIL_FROM`   | Yes\*    | Sender email (typically same as EMAIL_USER)                         |
+| `EMAIL_TO`     | Yes\*    | Recipient email(s) for notifications (comma-separated for multiple) |
+| `FRONTEND_URL` | No       | Link to frontend (optional, for email footer)                       |
 
 \* Required only if you want email notifications
 
